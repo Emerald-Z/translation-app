@@ -21,10 +21,13 @@ export interface DictionaryEntry {
   count: number
 }
 
-export async function saveHighlight(data: Omit<Highlight, 'id' | 'created_at'>): Promise<Highlight> {
+export async function saveHighlight(data: Omit<Highlight, 'id' | 'created_at' | 'user_id'>): Promise<Highlight> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const { data: row, error } = await supabase
     .from('highlights')
-    .insert(data)
+    .insert({ ...data, user_id: user.id })
     .select()
     .single()
   if (error) throw error

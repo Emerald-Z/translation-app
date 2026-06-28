@@ -10,9 +10,12 @@ export async function uploadBook(file: File): Promise<Book> {
     .upload(path, file)
   if (uploadError) throw uploadError
 
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
   const { data, error: insertError } = await supabase
     .from('books')
-    .insert({ filename: file.name, storage_path: path })
+    .insert({ filename: file.name, storage_path: path, user_id: user.id })
     .select()
     .single()
   if (insertError) throw insertError
