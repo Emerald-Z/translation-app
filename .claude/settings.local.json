@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nvm --version)",
+      "Bash(nvm ls *)",
+      "WebSearch"
+    ]
+  }
+}
