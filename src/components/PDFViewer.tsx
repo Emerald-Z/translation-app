@@ -3,12 +3,22 @@ import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/TextLayer.css'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import PinyinPopup from './PinyinPopup'
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import { saveHighlight, getBookHighlights, type Highlight } from '../lib/highlights'
 
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 interface PopupState {
   text: string
+  viewX: number
+  viewY: number
+  pageX: number
+  pageY: number
+  pageW: number
+  pageH: number
+}
+
+interface TooltipState {
+  highlight: Highlight
   x: number
   y: number
 }
@@ -17,15 +27,22 @@ const CONTAINS_CHINESE = /[一-鿿㐀-䶿]/
 
 interface Props {
   url: string
+  bookId: string
   initialPage?: number
   onPageChange?: (page: number, totalPages: number) => void
 }
 
-export default function PDFViewer({ url, initialPage = 1, onPageChange }: Props) {
-  const [numPages, setNumPages] = useState<number>(0)
+export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }: Props) {
+  const [numPages, setNumPages] = useState(0)
   const [currentPage, setCurrentPage] = useState(initialPage)
   const [popup, setPopup] = useState<PopupState | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [highlights, setHighlights] = useState<Highlight[]>([])
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const pageWrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    getBookHighlights(bookId).then(setHighlights).catch(() => {})
+  }, [bookId])
 
   function goToPage(page: number) {
     setCurrentPage(page)
@@ -43,17 +60,62 @@ export default function PDFViewer({ url, initialPage = 1, onPageChange }: Props)
     if (!text || !CONTAINS_CHINESE.test(text)) return
 
     const range = selection.getRangeAt(0)
-    const rect = range.getBoundingClientRect()
+    const selRect = range.getBoundingClientRect()
 
-    const popupX = Math.min(rect.left, window.innerWidth - 340)
-    const popupY = Math.max(rect.top - 8, 8)
+    // Compute position relative to the page wrapper for storing
+    const pageEl = pageWrapperRef.current
+    const pageRect = pageEl?.getBoundingClientRect()
+    const pageX = pageRect ? ((selRect.left - pageRect.left) / pageRect.width) * 100 : 0
+    const pageY = pageRect ? ((selRect.top - pageRect.top) / pageRect.height) * 100 : 0
+    const pageW = pageRect ? (selRect.width / pageRect.width) * 100 : 0
+    const pageH = pageRect ? (selRect.height / pageRect.height) * 100 : 0
 
-    setPopup({ text, x: popupX, y: popupY })
+    const viewX = Math.min(selRect.left, window.innerWidth - 340)
+    const viewY = Math.max(selRect.top - 8, 8)
+
+    setPopup({ text, viewX, viewY, pageX, pageY, pageW, pageH })
     selection.removeAllRanges()
   }, [])
 
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const pageEl = pageWrapperRef.current
+    if (!pageEl) return
+    const rect = pageEl.getBoundingClientRect()
+    const mx = ((e.clientX - rect.left) / rect.width) * 100
+    const my = ((e.clientY - rect.top) / rect.height) * 100
+
+    const hit = pageHighlights.find(
+      h => mx >= h.x && mx <= h.x + h.width && my >= h.y && my <= h.y + h.height
+    )
+    if (hit) {
+      setTooltip({ highlight: hit, x: e.clientX, y: e.clientY })
+    } else {
+      setTooltip(null)
+    }
+  }, [highlights, currentPage])
+
+  async function handleSave(text: string, py: string, translation: string) {
+    if (!popup) return
+    const h = await saveHighlight({
+      book_id: bookId,
+      page_number: currentPage,
+      text,
+      pinyin: py,
+      translation,
+      x: popup.pageX,
+      y: popup.pageY,
+      width: popup.pageW,
+      height: popup.pageH,
+    })
+    setHighlights(prev => [...prev, h])
+  }
+
+  const pageHighlights = highlights.filter(h => h.page_number === currentPage)
+  const savedTexts = new Set(pageHighlights.map(h => h.text))
+
   return (
     <div className="flex flex-col items-center w-full" onMouseUp={handleMouseUp}>
+      {/* Page navigation */}
       <div className="flex items-center gap-4 mb-4 sticky top-0 z-10 bg-gray-50 py-2 px-4 rounded-lg shadow-sm">
         <button
           onClick={() => goToPage(Math.max(1, currentPage - 1))}
@@ -74,14 +136,18 @@ export default function PDFViewer({ url, initialPage = 1, onPageChange }: Props)
         </button>
       </div>
 
-      <div ref={containerRef} className="shadow-lg rounded overflow-hidden">
+      {/* PDF + highlight overlays */}
+      <div
+        ref={pageWrapperRef}
+        className="relative shadow-lg rounded overflow-hidden"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
+      >
         <Document
           file={url}
           onLoadSuccess={({ numPages }) => setNumPages(numPages)}
           loading={
-            <div className="flex items-center justify-center h-64 text-gray-400">
-              Loading PDF…
-            </div>
+            <div className="flex items-center justify-center h-64 text-gray-400">Loading PDF…</div>
           }
         >
           <Page
@@ -91,14 +157,54 @@ export default function PDFViewer({ url, initialPage = 1, onPageChange }: Props)
             width={Math.min(window.innerWidth - 64, 900)}
           />
         </Document>
+
+        {/* Highlight overlays — pointer-events: none so text selection still works */}
+        {pageHighlights.map(h => (
+          <div
+            key={h.id}
+            style={{
+              position: 'absolute',
+              left: `${h.x}%`,
+              top: `${h.y}%`,
+              width: `${h.width}%`,
+              height: `${h.height}%`,
+              backgroundColor: 'rgba(253, 224, 71, 0.45)',
+              pointerEvents: 'none',
+              zIndex: 4,
+              borderRadius: 2,
+            }}
+          />
+        ))}
       </div>
 
+      {/* Hover tooltip for saved highlights */}
+      {tooltip && (
+        <div
+          style={{
+            position: 'fixed',
+            left: Math.min(tooltip.x + 12, window.innerWidth - 260),
+            top: Math.max(tooltip.y - 8, 8),
+            zIndex: 9998,
+            maxWidth: 240,
+            pointerEvents: 'none',
+          }}
+          className="bg-white border border-gray-200 rounded-lg shadow-xl p-3"
+        >
+          <p className="text-lg font-medium text-gray-800 mb-0.5">{tooltip.highlight.text}</p>
+          <p className="text-xs text-indigo-500 mb-1">{tooltip.highlight.pinyin}</p>
+          <p className="text-sm text-gray-600">{tooltip.highlight.translation}</p>
+        </div>
+      )}
+
+      {/* Selection popup */}
       {popup && (
         <PinyinPopup
           text={popup.text}
-          x={popup.x}
-          y={popup.y}
+          x={popup.viewX}
+          y={popup.viewY}
           onClose={() => setPopup(null)}
+          onSave={handleSave}
+          alreadySaved={savedTexts.has(popup.text)}
         />
       )}
     </div>

@@ -6,6 +6,8 @@ interface Props {
   x: number
   y: number
   onClose: () => void
+  onSave: (text: string, pinyin: string, translation: string) => Promise<void>
+  alreadySaved?: boolean
 }
 
 function isChineseChar(ch: string) {
@@ -19,15 +21,17 @@ async function translate(text: string): Promise<string> {
   const res = await fetch(url)
   if (!res.ok) throw new Error('Translation request failed')
   const data = await res.json()
-  // Response shape: [ [ ["translated", "original", ...], ... ], ... ]
   return (data[0] as [string, string][]).map(seg => seg[0]).join('')
 }
 
-export default function PinyinPopup({ text, x, y, onClose }: Props) {
+export default function PinyinPopup({ text, x, y, onClose, onSave, alreadySaved = false }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [translation, setTranslation] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
   const [transError, setTransError] = useState(false)
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>(
+    alreadySaved ? 'saved' : 'idle'
+  )
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -54,8 +58,18 @@ export default function PinyinPopup({ text, x, y, onClose }: Props) {
     ch,
     py: isChineseChar(ch) ? pinyin(ch, { toneType: 'symbol' }) : '',
   }))
-
   const fullPinyin = pinyin(text, { toneType: 'symbol', separator: ' ', nonZh: 'removed' })
+
+  async function handleSave() {
+    if (!translation || saveState !== 'idle') return
+    setSaveState('saving')
+    try {
+      await onSave(text, fullPinyin, translation)
+      setSaveState('saved')
+    } catch {
+      setSaveState('idle')
+    }
+  }
 
   return (
     <div
@@ -83,16 +97,31 @@ export default function PinyinPopup({ text, x, y, onClose }: Props) {
       )}
 
       {/* Translation */}
-      <div className="border-t border-gray-100 pt-2 text-sm">
-        {translating && (
-          <span className="text-gray-400 italic">Translating…</span>
-        )}
-        {!translating && translation && (
-          <span className="text-gray-700">{translation}</span>
-        )}
+      <div className="border-t border-gray-100 pt-2 pb-3 text-sm">
+        {translating && <span className="text-gray-400 italic">Translating…</span>}
+        {!translating && translation && <span className="text-gray-700">{translation}</span>}
         {!translating && transError && (
           <span className="text-red-400 text-xs">Translation unavailable</span>
         )}
+      </div>
+
+      {/* Save button */}
+      <div className="border-t border-gray-100 pt-3">
+        <button
+          onClick={handleSave}
+          disabled={translating || !translation || saveState !== 'idle'}
+          className={`w-full py-1.5 rounded-lg text-sm font-medium transition
+            ${saveState === 'saved'
+              ? 'bg-green-50 text-green-600 border border-green-200'
+              : saveState === 'saving'
+              ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-wait'
+              : translating || !translation
+              ? 'bg-gray-50 text-gray-300 border border-gray-100 cursor-not-allowed'
+              : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
+            }`}
+        >
+          {saveState === 'saved' ? '✓ Saved to Dictionary' : saveState === 'saving' ? 'Saving…' : 'Save to Dictionary'}
+        </button>
       </div>
 
       <button
