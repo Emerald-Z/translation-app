@@ -46,7 +46,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <span className="text-base font-semibold text-gray-900">Chinese Reader</span>
+          <span className="text-base font-semibold text-gray-900">Language Reader</span>
           <nav className="flex items-center gap-1">
             <button
               onClick={() => setView({ type: 'library' })}
@@ -98,6 +98,7 @@ export default function App() {
           <PDFViewer
             url={view.url}
             bookId={view.book.id}
+            language={view.book.language}
             initialPage={view.book.last_page}
             onPageChange={(page, total) => saveLastPage(view.book.id, page, total)}
           />

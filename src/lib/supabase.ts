@@ -9,6 +9,7 @@ export interface Book {
   id: string
   filename: string
   storage_path: string
+  language: string
   total_pages: number | null
   last_page: number
   created_at: string

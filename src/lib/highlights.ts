@@ -22,6 +22,7 @@ export interface DictionaryEntry {
   translation: string
   translation_override: string | null
   notes: string | null
+  language: string
   count: number
 }
 
@@ -50,15 +51,15 @@ export async function getBookHighlights(bookId: string): Promise<Highlight[]> {
 export async function getDictionaryEntries(): Promise<DictionaryEntry[]> {
   const { data, error } = await supabase
     .from('highlights')
-    .select('text, pinyin, translation, translation_override, notes')
+    .select('text, pinyin, translation, translation_override, notes, books(language)')
     .order('created_at', { ascending: false })
   if (error) throw error
 
   const map = new Map<string, DictionaryEntry>()
-  for (const h of data as Pick<Highlight, 'text' | 'pinyin' | 'translation' | 'translation_override' | 'notes'>[]) {
+  for (const h of (data as unknown as (Pick<Highlight, 'text' | 'pinyin' | 'translation' | 'translation_override' | 'notes'> & { books: { language: string } | null })[])) {
+    const language = h.books?.language ?? 'unknown'
     if (map.has(h.text)) {
       map.get(h.text)!.count++
-      // Use the most recently set override/notes (first non-null we encounter, since ordered by created_at desc)
       if (!map.get(h.text)!.translation_override && h.translation_override)
         map.get(h.text)!.translation_override = h.translation_override
       if (!map.get(h.text)!.notes && h.notes)
@@ -70,6 +71,7 @@ export async function getDictionaryEntries(): Promise<DictionaryEntry[]> {
         translation: h.translation,
         translation_override: h.translation_override,
         notes: h.notes,
+        language,
         count: 1,
       })
     }

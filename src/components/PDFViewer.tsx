@@ -2,8 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import 'react-pdf/dist/Page/TextLayer.css'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
-import PinyinPopup from './PinyinPopup'
+import PhoneticPopup from './PhoneticPopup'
 import { saveHighlight, getBookHighlights, type Highlight } from '../lib/highlights'
+import { hasTargetChars } from '../lib/phonetics'
 
 pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
@@ -23,16 +24,15 @@ interface TooltipState {
   y: number
 }
 
-const CONTAINS_CHINESE = /[一-鿿㐀-䶿]/
-
 interface Props {
   url: string
   bookId: string
+  language: string
   initialPage?: number
   onPageChange?: (page: number, totalPages: number) => void
 }
 
-export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }: Props) {
+export default function PDFViewer({ url, bookId, language, initialPage = 1, onPageChange }: Props) {
   const [numPages, setNumPages] = useState(0)
   const [currentPage, setCurrentPage] = useState(initialPage)
   const [popup, setPopup] = useState<PopupState | null>(null)
@@ -60,12 +60,11 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
     const selection = window.getSelection()
     if (!selection || selection.isCollapsed) return
     const text = selection.toString().trim()
-    if (!text || !CONTAINS_CHINESE.test(text)) return
+    if (!text || !hasTargetChars(text, language)) return
 
     const range = selection.getRangeAt(0)
     const selRect = range.getBoundingClientRect()
 
-    // Compute position relative to the page wrapper for storing
     const pageEl = pageWrapperRef.current
     const pageRect = pageEl?.getBoundingClientRect()
     const pageX = pageRect ? ((selRect.left - pageRect.left) / pageRect.width) * 100 : 0
@@ -78,7 +77,9 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
 
     setPopup({ text, viewX, viewY, pageX, pageY, pageW, pageH })
     selection.removeAllRanges()
-  }, [])
+  }, [language])
+
+  const pageHighlights = highlights.filter(h => h.page_number === currentPage)
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     const pageEl = pageWrapperRef.current
@@ -90,20 +91,16 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
     const hit = pageHighlights.find(
       h => mx >= h.x && mx <= h.x + h.width && my >= h.y && my <= h.y + h.height
     )
-    if (hit) {
-      setTooltip({ highlight: hit, x: e.clientX, y: e.clientY })
-    } else {
-      setTooltip(null)
-    }
-  }, [highlights, currentPage])
+    setTooltip(hit ? { highlight: hit, x: e.clientX, y: e.clientY } : null)
+  }, [pageHighlights])
 
-  async function handleSave(text: string, py: string, translation: string) {
+  async function handleSave(text: string, phonetic: string, translation: string) {
     if (!popup) return
     const h = await saveHighlight({
       book_id: bookId,
       page_number: currentPage,
       text,
-      pinyin: py,
+      pinyin: phonetic,
       translation,
       x: popup.pageX,
       y: popup.pageY,
@@ -112,8 +109,6 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
     })
     setHighlights(prev => [...prev, h])
   }
-
-  const pageHighlights = highlights.filter(h => h.page_number === currentPage)
 
   return (
     <div className="flex flex-col items-center w-full" onMouseUp={handleMouseUp}>
@@ -178,7 +173,6 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
           />
         </Document>
 
-        {/* Highlight overlays — pointer-events: none so text selection still works */}
         {pageHighlights.map(h => (
           <div
             key={h.id}
@@ -197,7 +191,7 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
         ))}
       </div>
 
-      {/* Hover tooltip for saved highlights */}
+      {/* Hover tooltip */}
       {tooltip && (
         <div
           style={{
@@ -211,7 +205,9 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
           className="bg-white border border-gray-200 rounded-lg shadow-xl p-3"
         >
           <p className="text-lg font-medium text-gray-800 mb-0.5">{tooltip.highlight.text}</p>
-          <p className="text-xs text-indigo-500 mb-1">{tooltip.highlight.pinyin}</p>
+          {tooltip.highlight.pinyin && (
+            <p className="text-xs text-indigo-500 mb-1">{tooltip.highlight.pinyin}</p>
+          )}
           <p className="text-sm text-gray-600">
             {tooltip.highlight.translation_override ?? tooltip.highlight.translation}
           </p>
@@ -223,10 +219,10 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
         </div>
       )}
 
-      {/* Selection popup */}
       {popup && (
-        <PinyinPopup
+        <PhoneticPopup
           text={popup.text}
+          language={language}
           x={popup.viewX}
           y={popup.viewY}
           onClose={() => setPopup(null)}

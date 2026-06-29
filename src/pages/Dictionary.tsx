@@ -5,6 +5,7 @@ import {
   updateHighlightsByText,
   type DictionaryEntry,
 } from '../lib/highlights'
+import { getLanguage } from '../lib/languages'
 
 interface EditState {
   translation: string
@@ -16,6 +17,7 @@ export default function Dictionary() {
   const [entries, setEntries] = useState<DictionaryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [languageFilter, setLanguageFilter] = useState<string | null>(null)
   const [editing, setEditing] = useState<Record<string, EditState>>({})
 
   useEffect(() => {
@@ -65,17 +67,23 @@ export default function Dictionary() {
     setEntries(prev => prev.filter(e => e.text !== text))
   }
 
-  const filtered = entries.filter(e =>
-    e.text.includes(search) ||
-    e.pinyin.toLowerCase().includes(search.toLowerCase()) ||
-    (e.translation_override ?? e.translation).toLowerCase().includes(search.toLowerCase()) ||
-    (e.notes ?? '').toLowerCase().includes(search.toLowerCase())
-  )
+  const presentLanguages = Array.from(new Set(entries.map(e => e.language)))
+
+  const filtered = entries.filter(e => {
+    if (languageFilter && e.language !== languageFilter) return false
+    if (!search) return true
+    return (
+      e.text.includes(search) ||
+      e.pinyin.toLowerCase().includes(search.toLowerCase()) ||
+      (e.translation_override ?? e.translation).toLowerCase().includes(search.toLowerCase()) ||
+      (e.notes ?? '').toLowerCase().includes(search.toLowerCase())
+    )
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="px-6 py-8 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-800">Dictionary</h2>
             <p className="text-xs text-gray-400 mt-0.5">{entries.length} unique words saved</p>
@@ -88,6 +96,34 @@ export default function Dictionary() {
             className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-indigo-300 w-48"
           />
         </div>
+
+        {entries.length > 0 && (
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            <button
+              onClick={() => setLanguageFilter(null)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                languageFilter === null
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+            {presentLanguages.map(code => (
+              <button
+                key={code}
+                onClick={() => setLanguageFilter(code === languageFilter ? null : code)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                  languageFilter === code
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {getLanguage(code).label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center text-gray-400 py-16">Loading…</div>

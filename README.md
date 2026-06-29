@@ -1,13 +1,14 @@
-# Chinese Reader
+# Language Reader
 
-A personal web app for reading Chinese PDF books with inline pinyin, translation, and a vocabulary dictionary. Built with Vite + React, backed by Supabase, and hosted on Vercel.
+A personal web app for reading foreign language PDF books with inline phonetics, translation, and a vocabulary dictionary. Built with Vite + React, backed by Supabase, and hosted on Vercel.
 
 ## Features
 
 ### PDF Library
-- Upload Chinese PDF books via drag and drop or file picker
+- Upload PDF books in any supported language via drag and drop or file picker
+- Select the book's language before uploading — stored with the book and used to drive phonetics
+- Each book card shows its language, a reading progress bar, and your current page
 - Books are stored in Supabase and persist across sessions and devices
-- Each book card shows a reading progress bar and your current page
 - Click a book to open it; it resumes from where you left off
 - Delete books from the library with the hover ✕ button
 
@@ -16,23 +17,33 @@ A personal web app for reading Chinese PDF books with inline pinyin, translation
 - Zoom in and out (50%–300%) using the − / + controls in the navigation bar
 - Reading progress is saved automatically as you turn pages
 
-### Pinyin & Translation Popup
-- Highlight any Chinese text to open a popup showing:
-  - Each character stacked with its pinyin (with tone marks) above it
-  - The full pinyin string
+### Phonetics & Translation Popup
+- Highlight any text in the book's language to open a popup showing:
+  - Each character or syllable stacked with its phonetic annotation above it
+  - The full romanization string
   - An English translation (via Google Translate's free unofficial API)
 - Click **Save to Dictionary** to add the word or phrase to your personal dictionary
 
+**Language support:**
+| Language | Phonetics |
+|---|---|
+| Chinese (Mandarin) | Full pinyin with tone marks (`pinyin-pro`) |
+| Japanese | Romaji for hiragana/katakana; kanji have no annotation (`wanakana`) |
+| Korean | Revised Romanization per syllable block |
+| Spanish, French, German, Portuguese, Russian, Arabic | Translation only — no phonetics |
+
+> Phonetics are computed entirely client-side with no API calls. For full Japanese kanji support or additional languages, the phonetics layer (`src/lib/phonetics.ts`) is designed to be swapped for a single API call without changing anything else in the app.
+
 ### Saved Highlights
 - Saved highlights appear as yellow overlays on the PDF page
-- Hover over any highlight to see a tooltip with the text, pinyin, and translation — no re-highlighting needed
+- Hover over any highlight to see a tooltip with the text, phonetic annotation, and translation — no re-highlighting needed
 - Highlights persist across sessions and reloads
 
 ### Dictionary
 - Accessible from the top nav bar
 - Shows every unique word or phrase you've saved across all books
-- Each entry displays the Chinese text, pinyin, English translation, and a count of how many times you've highlighted it
-- Search by Chinese text, pinyin, or English translation
+- Each entry displays the text, phonetic annotation, English translation, and a count of how many times you've highlighted it
+- Search by text, phonetic annotation, or English translation
 - Hover a card and click the ✎ button to edit the translation or add a personal note
   - Edited translations show your override with the original struck through beneath it
   - Notes appear in an amber badge on the card and in the reader tooltip when hovering a highlight

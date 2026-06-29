@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { type Book, listBooks, uploadBook, deleteBook } from '../lib/books'
+import { LANGUAGES, getLanguage } from '../lib/languages'
 import FileUpload from '../components/FileUpload'
 
 interface Props {
@@ -11,6 +12,7 @@ export default function Library({ onOpen }: Props) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedLanguage, setSelectedLanguage] = useState('zh')
 
   const load = useCallback(async () => {
     try {
@@ -28,7 +30,7 @@ export default function Library({ onOpen }: Props) {
     setUploading(true)
     setError(null)
     try {
-      const book = await uploadBook(file)
+      const book = await uploadBook(file, selectedLanguage)
       setBooks(prev => [book, ...prev])
     } catch {
       setError('Upload failed. Check your Supabase storage bucket exists and RLS policies are set.')
@@ -50,11 +52,6 @@ export default function Library({ onOpen }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">Chinese Reader</h1>
-        <p className="text-xs text-gray-500 mt-0.5">Your library</p>
-      </header>
-
       <main className="px-6 py-8 max-w-5xl mx-auto">
         {error && (
           <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
@@ -68,7 +65,21 @@ export default function Library({ onOpen }: Props) {
               Uploading…
             </div>
           ) : (
-            <FileUpload onFile={handleFile} />
+            <div className="flex flex-col items-center gap-3 w-full max-w-lg mx-auto">
+              <div className="flex items-center gap-2 self-start">
+                <label className="text-sm text-gray-500">Book language:</label>
+                <select
+                  value={selectedLanguage}
+                  onChange={e => setSelectedLanguage(e.target.value)}
+                  className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-indigo-300"
+                >
+                  {LANGUAGES.map(l => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
+              </div>
+              <FileUpload onFile={handleFile} />
+            </div>
           )}
         </div>
 
@@ -84,7 +95,6 @@ export default function Library({ onOpen }: Props) {
                 onClick={() => onOpen(book)}
                 className="group relative bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer"
               >
-                {/* Book cover placeholder */}
                 <div className="w-full aspect-[3/4] bg-indigo-50 rounded-lg mb-3 flex items-center justify-center">
                   <svg className="w-10 h-10 text-indigo-200" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
@@ -92,6 +102,7 @@ export default function Library({ onOpen }: Props) {
                 </div>
 
                 <p className="text-sm font-medium text-gray-800 truncate">{book.filename}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{getLanguage(book.language).label}</p>
 
                 {book.total_pages && (
                   <div className="mt-1">
@@ -107,7 +118,6 @@ export default function Library({ onOpen }: Props) {
                   </div>
                 )}
 
-                {/* Delete button */}
                 <button
                   onClick={e => handleDelete(book, e)}
                   className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-xs"

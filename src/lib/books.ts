@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 export type { Book } from './supabase'
 import type { Book } from './supabase'
 
-export async function uploadBook(file: File): Promise<Book> {
+export async function uploadBook(file: File, language: string): Promise<Book> {
   const path = `${crypto.randomUUID()}.pdf`
 
   const { error: uploadError } = await supabase.storage
@@ -15,7 +15,7 @@ export async function uploadBook(file: File): Promise<Book> {
 
   const { data, error: insertError } = await supabase
     .from('books')
-    .insert({ filename: file.name, storage_path: path, user_id: user.id })
+    .insert({ filename: file.name, storage_path: path, user_id: user.id, language })
     .select()
     .single()
   if (insertError) throw insertError
