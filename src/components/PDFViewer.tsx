@@ -38,7 +38,10 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
   const [popup, setPopup] = useState<PopupState | null>(null)
   const [highlights, setHighlights] = useState<Highlight[]>([])
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const [zoom, setZoom] = useState(1)
   const pageWrapperRef = useRef<HTMLDivElement>(null)
+
+  const baseWidth = Math.min(window.innerWidth - 64, 900)
 
   useEffect(() => {
     getBookHighlights(bookId).then(setHighlights).catch(() => {})
@@ -134,6 +137,24 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
         >
           Next →
         </button>
+
+        <div className="flex items-center gap-2 ml-4 border-l border-gray-200 pl-4">
+          <button
+            onClick={() => setZoom(z => Math.max(0.5, +(z - 0.25).toFixed(2)))}
+            disabled={zoom <= 0.5}
+            className="w-7 h-7 rounded bg-gray-100 text-gray-600 disabled:opacity-40 hover:bg-gray-200 transition flex items-center justify-center text-lg leading-none"
+          >
+            −
+          </button>
+          <span className="text-sm text-gray-500 w-12 text-center">{Math.round(zoom * 100)}%</span>
+          <button
+            onClick={() => setZoom(z => Math.min(3, +(z + 0.25).toFixed(2)))}
+            disabled={zoom >= 3}
+            className="w-7 h-7 rounded bg-gray-100 text-gray-600 disabled:opacity-40 hover:bg-gray-200 transition flex items-center justify-center text-lg leading-none"
+          >
+            +
+          </button>
+        </div>
       </div>
 
       {/* PDF + highlight overlays */}
@@ -154,7 +175,7 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
             pageNumber={currentPage}
             renderTextLayer={true}
             renderAnnotationLayer={false}
-            width={Math.min(window.innerWidth - 64, 900)}
+            width={baseWidth * zoom}
           />
         </Document>
 
