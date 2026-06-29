@@ -33,6 +33,9 @@ A personal web app for reading Chinese PDF books with inline pinyin, translation
 - Shows every unique word or phrase you've saved across all books
 - Each entry displays the Chinese text, pinyin, English translation, and a count of how many times you've highlighted it
 - Search by Chinese text, pinyin, or English translation
+- Hover a card and click the ✎ button to edit the translation or add a personal note
+  - Edited translations show your override with the original struck through beneath it
+  - Notes appear in an amber badge on the card and in the reader tooltip when hovering a highlight
 - Delete entries with the hover ✕ button (removes all highlights of that word)
 
 ### Authentication

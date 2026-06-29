@@ -114,7 +114,6 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
   }
 
   const pageHighlights = highlights.filter(h => h.page_number === currentPage)
-  const savedTexts = new Set(pageHighlights.map(h => h.text))
 
   return (
     <div className="flex flex-col items-center w-full" onMouseUp={handleMouseUp}>
@@ -213,7 +212,14 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
         >
           <p className="text-lg font-medium text-gray-800 mb-0.5">{tooltip.highlight.text}</p>
           <p className="text-xs text-indigo-500 mb-1">{tooltip.highlight.pinyin}</p>
-          <p className="text-sm text-gray-600">{tooltip.highlight.translation}</p>
+          <p className="text-sm text-gray-600">
+            {tooltip.highlight.translation_override ?? tooltip.highlight.translation}
+          </p>
+          {tooltip.highlight.notes && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1 mt-1">
+              {tooltip.highlight.notes}
+            </p>
+          )}
         </div>
       )}
 
@@ -225,7 +231,6 @@ export default function PDFViewer({ url, bookId, initialPage = 1, onPageChange }
           y={popup.viewY}
           onClose={() => setPopup(null)}
           onSave={handleSave}
-          alreadySaved={savedTexts.has(popup.text)}
         />
       )}
     </div>

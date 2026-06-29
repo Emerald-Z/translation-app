@@ -7,6 +7,8 @@ export interface Highlight {
   text: string
   pinyin: string
   translation: string
+  translation_override: string | null
+  notes: string | null
   x: number
   y: number
   width: number
@@ -18,10 +20,12 @@ export interface DictionaryEntry {
   text: string
   pinyin: string
   translation: string
+  translation_override: string | null
+  notes: string | null
   count: number
 }
 
-export async function saveHighlight(data: Omit<Highlight, 'id' | 'created_at' | 'user_id'>): Promise<Highlight> {
+export async function saveHighlight(data: Omit<Highlight, 'id' | 'created_at' | 'user_id' | 'translation_override' | 'notes'>): Promise<Highlight> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
@@ -46,18 +50,42 @@ export async function getBookHighlights(bookId: string): Promise<Highlight[]> {
 export async function getDictionaryEntries(): Promise<DictionaryEntry[]> {
   const { data, error } = await supabase
     .from('highlights')
-    .select('text, pinyin, translation')
+    .select('text, pinyin, translation, translation_override, notes')
+    .order('created_at', { ascending: false })
   if (error) throw error
 
   const map = new Map<string, DictionaryEntry>()
-  for (const h of data as { text: string; pinyin: string; translation: string }[]) {
+  for (const h of data as Pick<Highlight, 'text' | 'pinyin' | 'translation' | 'translation_override' | 'notes'>[]) {
     if (map.has(h.text)) {
       map.get(h.text)!.count++
+      // Use the most recently set override/notes (first non-null we encounter, since ordered by created_at desc)
+      if (!map.get(h.text)!.translation_override && h.translation_override)
+        map.get(h.text)!.translation_override = h.translation_override
+      if (!map.get(h.text)!.notes && h.notes)
+        map.get(h.text)!.notes = h.notes
     } else {
-      map.set(h.text, { text: h.text, pinyin: h.pinyin, translation: h.translation, count: 1 })
+      map.set(h.text, {
+        text: h.text,
+        pinyin: h.pinyin,
+        translation: h.translation,
+        translation_override: h.translation_override,
+        notes: h.notes,
+        count: 1,
+      })
     }
   }
   return Array.from(map.values()).sort((a, b) => b.count - a.count)
+}
+
+export async function updateHighlightsByText(
+  text: string,
+  updates: { translation_override: string | null; notes: string | null }
+) {
+  const { error } = await supabase
+    .from('highlights')
+    .update(updates)
+    .eq('text', text)
+  if (error) throw error
 }
 
 export async function deleteHighlightsByText(text: string) {

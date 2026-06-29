@@ -7,7 +7,6 @@ interface Props {
   y: number
   onClose: () => void
   onSave: (text: string, pinyin: string, translation: string) => Promise<void>
-  alreadySaved?: boolean
 }
 
 function isChineseChar(ch: string) {
@@ -24,14 +23,12 @@ async function translate(text: string): Promise<string> {
   return (data[0] as [string, string][]).map(seg => seg[0]).join('')
 }
 
-export default function PinyinPopup({ text, x, y, onClose, onSave, alreadySaved = false }: Props) {
+export default function PinyinPopup({ text, x, y, onClose, onSave }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [translation, setTranslation] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
   const [transError, setTransError] = useState(false)
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>(
-    alreadySaved ? 'saved' : 'idle'
-  )
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -66,6 +63,7 @@ export default function PinyinPopup({ text, x, y, onClose, onSave, alreadySaved 
     try {
       await onSave(text, fullPinyin, translation)
       setSaveState('saved')
+      setTimeout(() => setSaveState('idle'), 1500)
     } catch {
       setSaveState('idle')
     }
