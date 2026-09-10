@@ -1,134 +1,129 @@
-import { useEffect, useState, useCallback } from 'react'
-import { type Book, listBooks, uploadBook, deleteBook } from '../lib/books'
-import { LANGUAGES, getLanguage } from '../lib/languages'
-import FileUpload from '../components/FileUpload'
+import { useEffect, useMemo, useState } from 'react'
+import BookRow from '../components/BookRow'
+import BookTile from '../components/BookTile'
+import Dropdown from '../components/Dropdown'
+import EditBookModal from '../components/EditBookModal'
+import EmptyState from '../components/EmptyState'
+import Shelf from '../components/Shelf'
+import {
+  bookProgress, bookTitle, deleteBook, listBooks, setFavorite, type Book,
+} from '../lib/books'
+import { languageLabel } from '../lib/languages'
 
-interface Props {
-  onOpen: (book: Book) => void
-}
+type Sort = 'recent' | 'title' | 'author' | 'progress' | 'language'
 
-export default function Library({ onOpen }: Props) {
+const SORTS: { value: Sort; label: string }[] = [
+  { value: 'recent', label: 'Recently added' },
+  { value: 'title', label: 'Title A–Z' },
+  { value: 'author', label: 'Author' },
+  { value: 'progress', label: 'Progress' },
+  { value: 'language', label: 'Language' },
+]
+
+export default function Library() {
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
+  const [sort, setSort] = useState<Sort>('recent')
+  const [editing, setEditing] = useState<Book | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [selectedLanguage, setSelectedLanguage] = useState('zh')
 
-  const load = useCallback(async () => {
-    try {
-      setBooks(await listBooks())
-    } catch {
-      setError('Failed to load library.')
-    } finally {
-      setLoading(false)
-    }
+  useEffect(() => {
+    listBooks()
+      .then(setBooks)
+      .catch(() => setError('Could not load your library.'))
+      .finally(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load() }, [load])
+  const favorites = books.filter(b => b.favorite)
 
-  async function handleFile(file: File) {
-    setUploading(true)
-    setError(null)
-    try {
-      const book = await uploadBook(file, selectedLanguage)
-      setBooks(prev => [book, ...prev])
-    } catch {
-      setError('Upload failed. Check your Supabase storage bucket exists and RLS policies are set.')
-    } finally {
-      setUploading(false)
+  const sorted = useMemo(() => {
+    const list = [...books]
+    switch (sort) {
+      case 'title': return list.sort((a, b) => bookTitle(a).localeCompare(bookTitle(b)))
+      case 'author': return list.sort((a, b) => (a.author ?? '').localeCompare(b.author ?? ''))
+      case 'progress': return list.sort((a, b) => bookProgress(b) - bookProgress(a))
+      case 'language': return list.sort((a, b) =>
+        languageLabel(a.language).localeCompare(languageLabel(b.language)))
+      default: return list
     }
+  }, [books, sort])
+
+  async function toggleFavorite(book: Book) {
+    const next = !book.favorite
+    setBooks(bs => bs.map(b => (b.id === book.id ? { ...b, favorite: next } : b)))
+    await setFavorite(book.id, next)
   }
 
-  async function handleDelete(book: Book, e: React.MouseEvent) {
-    e.stopPropagation()
-    if (!confirm(`Delete "${book.filename}"?`)) return
+  async function handleDelete(book: Book) {
+    if (!confirm(`Delete "${bookTitle(book)}"? This also removes its saved cards.`)) return
     try {
       await deleteBook(book.id, book.storage_path)
-      setBooks(prev => prev.filter(b => b.id !== book.id))
+      setBooks(bs => bs.filter(b => b.id !== book.id))
     } catch {
-      setError('Failed to delete book.')
+      setError('Could not delete that book.')
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="px-6 py-8 max-w-5xl mx-auto">
-        {error && (
-          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-            {error}
-          </div>
-        )}
+    <div className="max-w-[1160px]">
+      <h1 className="h-display">Library</h1>
 
-        <div className="mb-8">
-          {uploading ? (
-            <div className="flex items-center justify-center h-56 border-2 border-dashed border-indigo-300 rounded-2xl bg-indigo-50 text-indigo-400">
-              Uploading…
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3 w-full max-w-lg mx-auto">
-              <div className="flex items-center gap-2 self-start">
-                <label className="text-sm text-gray-500">Book language:</label>
-                <select
-                  value={selectedLanguage}
-                  onChange={e => setSelectedLanguage(e.target.value)}
-                  className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:border-indigo-300"
-                >
-                  {LANGUAGES.map(l => (
-                    <option key={l.code} value={l.code}>{l.label}</option>
-                  ))}
-                </select>
-              </div>
-              <FileUpload onFile={handleFile} />
-            </div>
-          )}
-        </div>
+      {error && (
+        <p className="mt-4 rounded-xs bg-rose/40 px-3 py-2 text-sm text-[#5C0A0C]">{error}</p>
+      )}
 
-        {loading ? (
-          <div className="text-center text-gray-400 py-16">Loading library…</div>
-        ) : books.length === 0 ? (
-          <div className="text-center text-gray-400 py-16">No books yet — upload one above.</div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {books.map(book => (
-              <div
-                key={book.id}
-                onClick={() => onOpen(book)}
-                className="group relative bg-white rounded-xl border border-gray-200 p-4 text-left hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer"
-              >
-                <div className="w-full aspect-[3/4] bg-indigo-50 rounded-lg mb-3 flex items-center justify-center">
-                  <svg className="w-10 h-10 text-indigo-200" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
-                </div>
-
-                <p className="text-sm font-medium text-gray-800 truncate">{book.filename}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{getLanguage(book.language).label}</p>
-
-                {book.total_pages && (
-                  <div className="mt-1">
-                    <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-400 rounded-full"
-                        style={{ width: `${Math.round((book.last_page / book.total_pages) * 100)}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      p. {book.last_page} / {book.total_pages}
-                    </p>
-                  </div>
-                )}
-
-                <button
-                  onClick={e => handleDelete(book, e)}
-                  className="absolute top-2 right-2 w-6 h-6 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center text-xs"
-                >
-                  ×
-                </button>
-              </div>
+      <div className="mt-4">
+        {favorites.length ? (
+          <div className="flex items-start gap-5 overflow-x-auto pb-2">
+            {favorites.map(book => (
+              <BookTile key={book.id} book={book} onToggleFavorite={toggleFavorite} />
             ))}
           </div>
+        ) : (
+          <EmptyState className="h-[240px]">
+            {loading ? 'Loading…' : 'Favorite books will appear here'}
+          </EmptyState>
         )}
-      </main>
+        <Shelf className="mt-1" />
+      </div>
+
+      <div className="mt-10 flex items-center justify-between">
+        <h2 className="text-[19px] text-ink">All Titles</h2>
+        <Dropdown
+          value={sort}
+          onChange={v => setSort(v as Sort)}
+          options={SORTS}
+          className="w-[150px]"
+        />
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {sorted.length ? (
+          sorted.map(book => (
+            <BookRow
+              key={book.id}
+              book={book}
+              onToggleFavorite={toggleFavorite}
+              onEdit={setEditing}
+              onDelete={handleDelete}
+            />
+          ))
+        ) : (
+          <EmptyState className="h-[120px]">
+            {loading ? 'Loading…' : 'Book titles will appear here'}
+          </EmptyState>
+        )}
+      </div>
+
+      {editing && (
+        <EditBookModal
+          book={editing}
+          onClose={() => setEditing(null)}
+          onSaved={patch =>
+            setBooks(bs => bs.map(b => (b.id === editing.id ? { ...b, ...patch } : b)))
+          }
+        />
+      )}
     </div>
   )
 }
