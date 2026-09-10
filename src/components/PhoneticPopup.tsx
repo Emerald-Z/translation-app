@@ -1,50 +1,55 @@
 import { useEffect, useRef, useState } from 'react'
+import Icon from './Icon'
 import { getPhonetics } from '../lib/phonetics'
 import { translate } from '../lib/translate'
 
 interface Props {
   text: string
   language: string
+  target: string
+  showPhonetics: boolean
   x: number
   y: number
   onClose: () => void
   onSave: (text: string, phonetic: string, translation: string) => Promise<void>
 }
 
-export default function PhoneticPopup({ text, language, x, y, onClose, onSave }: Props) {
+export default function PhoneticPopup({
+  text, language, target, showPhonetics, x, y, onClose, onSave,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  const [translationText, setTranslationText] = useState<string | null>(null)
+  const [translation, setTranslation] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
-  const [transError, setTransError] = useState(false)
+  const [failed, setFailed] = useState(false)
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle')
 
-  const phonetics = getPhonetics(text, language)
+  const phonetics = showPhonetics ? getPhonetics(text, language) : null
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function onClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose()
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
   }, [onClose])
 
   useEffect(() => {
-    setTranslationText(null)
-    setTransError(false)
+    setTranslation(null)
+    setFailed(false)
     setTranslating(true)
-    translate(text, language)
-      .then(setTranslationText)
-      .catch(() => setTransError(true))
+    translate(text, language, target)
+      .then(setTranslation)
+      .catch(() => setFailed(true))
       .finally(() => setTranslating(false))
-  }, [text, language])
+  }, [text, language, target])
 
   async function handleSave() {
-    if (!translationText || saveState !== 'idle') return
+    if (!translation || saveState !== 'idle') return
     setSaveState('saving')
     try {
-      await onSave(text, phonetics?.full ?? '', translationText)
+      await onSave(text, getPhonetics(text, language)?.full ?? '', translation)
       setSaveState('saved')
-      setTimeout(() => setSaveState('idle'), 1500)
+      setTimeout(onClose, 900)
     } catch {
       setSaveState('idle')
     }
@@ -53,63 +58,50 @@ export default function PhoneticPopup({ text, language, x, y, onClose, onSave }:
   return (
     <div
       ref={ref}
-      style={{ position: 'fixed', left: x, top: y, zIndex: 9999, maxWidth: '90vw' }}
-      className="bg-white border border-gray-200 rounded-xl shadow-2xl p-4 select-none"
+      style={{ position: 'fixed', left: x, top: y, zIndex: 60, width: 317 }}
+      className="select-none rounded-xs border border-line bg-white p-4 shadow-panel"
     >
-      {/* Phonetic segment display — works for all languages */}
+      <button
+        onClick={onClose}
+        aria-label="Close"
+        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-ink-soft transition hover:bg-cream hover:text-ink"
+      >
+        <Icon name="close" size={12} strokeWidth={2.2} />
+      </button>
+
       {phonetics ? (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {phonetics.segments.map((seg, i) => (
-            <div key={i} className="flex flex-col items-center min-w-[1rem]">
-              <span className="text-xs text-indigo-500 leading-none mb-1 whitespace-nowrap">
-                {seg.phonetic}
+        <div className="flex flex-wrap gap-x-2 gap-y-1 pr-6">
+          {phonetics.segments.map((segment, i) => (
+            <div key={i} className="flex min-w-[1rem] flex-col items-center">
+              <span className="mb-0.5 whitespace-nowrap text-[11px] leading-none text-peri">
+                {segment.phonetic}
               </span>
-              <span className="text-2xl leading-none text-gray-800">{seg.text}</span>
+              <span className="text-[22px] leading-none text-ink">{segment.text}</span>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-2xl text-gray-800 mb-3">{text}</p>
+        <p className="pr-6 text-[20px] leading-snug text-ink">{text}</p>
       )}
 
-      {/* Full romanization */}
       {phonetics?.full && (
-        <div className="text-sm text-gray-400 border-t border-gray-100 pt-2 pb-2">
-          {phonetics.full}
-        </div>
+        <p className="mt-3 border-t border-line pt-2 text-[12px] text-ink-soft">{phonetics.full}</p>
       )}
 
-      {/* Translation */}
-      <div className="border-t border-gray-100 pt-2 pb-3 text-sm">
-        {translating && <span className="text-gray-400 italic">Translating…</span>}
-        {!translating && translationText && <span className="text-gray-700">{translationText}</span>}
-        {!translating && transError && <span className="text-red-400 text-xs">Translation unavailable</span>}
-      </div>
-
-      {/* Save button */}
-      <div className="border-t border-gray-100 pt-3">
-        <button
-          onClick={handleSave}
-          disabled={translating || !translationText || saveState !== 'idle'}
-          className={`w-full py-1.5 rounded-lg text-sm font-medium transition
-            ${saveState === 'saved'
-              ? 'bg-green-50 text-green-600 border border-green-200'
-              : saveState === 'saving'
-              ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-wait'
-              : translating || !translationText
-              ? 'bg-gray-50 text-gray-300 border border-gray-100 cursor-not-allowed'
-              : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'
-            }`}
-        >
-          {saveState === 'saved' ? '✓ Saved to Dictionary' : saveState === 'saving' ? 'Saving…' : 'Save to Dictionary'}
-        </button>
+      <div className="mt-2 border-t border-line pt-2 text-[13px]">
+        {translating && <span className="italic text-ink-soft">Translating…</span>}
+        {!translating && translation && <span className="text-ink">{translation}</span>}
+        {!translating && failed && (
+          <span className="text-ink-soft">Translation unavailable</span>
+        )}
       </div>
 
       <button
-        onClick={onClose}
-        className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-lg leading-none w-6 h-6 flex items-center justify-center"
+        onClick={handleSave}
+        disabled={translating || !translation || saveState !== 'idle'}
+        className="btn-secondary mt-3 w-full disabled:shadow-none"
       >
-        ×
+        {saveState === 'saved' ? 'Saved to Cards' : saveState === 'saving' ? 'Saving…' : 'Save as Card'}
       </button>
     </div>
   )
