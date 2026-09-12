@@ -78,14 +78,14 @@ export default function Home() {
           {current ? (
             <ContinueCard book={current} />
           ) : (
-            <EmptyState className="h-[210px] w-[320px] bg-sand">
+            <EmptyState className="h-[224px] w-[344px] bg-sand">
               {loading ? 'Loading…' : 'Add a book to start reading'}
             </EmptyState>
           )}
           <Link
             to="/add"
             aria-label="Add a book"
-            className="flex h-[210px] w-[158px] items-center justify-center bg-sand text-cream transition hover:bg-sand/80"
+            className="flex h-[224px] w-[169px] items-center justify-center bg-sand text-cream transition hover:bg-sand/80"
           >
             <Icon name="plus" size={54} strokeWidth={2} />
           </Link>
@@ -108,7 +108,7 @@ export default function Home() {
         </div>
       </div>
 
-      <aside className="hidden w-[320px] shrink-0 pt-9 xl:block">
+      <aside className="hidden w-[320px] shrink-0 pt-[34px] xl:block">
         <div className="flex max-h-[calc(100vh-120px)] flex-col bg-sand p-4">
           <h2 className="text-[19px] text-ink">Pinned Cards</h2>
 
@@ -136,7 +136,7 @@ export default function Home() {
 function ContinueCard({ book }: { book: Book }) {
   const progress = bookProgress(book)
   return (
-    <Link to={`/read/${book.id}`} className="flex w-[320px] gap-4 bg-sand p-3 transition hover:bg-sand/85">
+    <Link to={`/read/${book.id}`} className="flex w-[344px] gap-4 bg-sand p-3 transition hover:bg-sand/85">
       <div className="h-[186px] w-[136px] shrink-0 overflow-hidden shadow-card">
         <BookCover book={book} />
       </div>

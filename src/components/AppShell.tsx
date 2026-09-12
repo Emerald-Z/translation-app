@@ -6,11 +6,13 @@ export default function AppShell() {
   return (
     <div className="flex min-h-screen bg-cream">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 justify-end px-8 pt-4">
+      {/* The profile chip overlaps the content band rather than pushing it down,
+          so page headings start at the y the design specifies. */}
+      <div className="relative min-w-0 flex-1">
+        <div className="absolute right-6 top-6 z-30">
           <ProfileMenu />
-        </header>
-        <main className="min-w-0 flex-1 px-12 pb-16 pt-3">
+        </div>
+        <main className="min-w-0 px-[50px] pb-16 pt-[53px]">
           <Outlet />
         </main>
       </div>

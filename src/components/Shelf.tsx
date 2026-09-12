@@ -4,10 +4,10 @@
  */
 export default function Shelf({ className = '' }: { className?: string }) {
   return (
-    <div className={`relative h-[46px] w-full ${className}`} aria-hidden="true">
-      <div className="h-3 w-full bg-wood" />
-      <div className="absolute left-4 top-3 h-8 w-4 bg-wood" />
-      <div className="absolute right-4 top-3 h-8 w-4 bg-wood" />
+    <div className={`relative h-[52px] w-full ${className}`} aria-hidden="true">
+      <div className="h-4 w-full bg-wood" />
+      <div className="absolute left-5 top-4 h-9 w-5 bg-wood" />
+      <div className="absolute right-5 top-4 h-9 w-5 bg-wood" />
     </div>
   )
 }
