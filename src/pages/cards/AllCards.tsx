@@ -73,10 +73,10 @@ export default function AllCards() {
       </div>
 
       <div className="mt-4 flex items-baseline justify-between">
-        <p className="text-[12px] text-ink-soft">
+        <p className="text-[12px] text-olive">
           {search.trim() ? `Results for “${search.trim()}”` : filtering ? 'Filtered results' : ''}
         </p>
-        <p className="text-[12px] text-ink">{filtered.length} Cards</p>
+        <p className="text-[12px] text-olive">{filtered.length} Cards</p>
       </div>
 
       <div className="mt-2">

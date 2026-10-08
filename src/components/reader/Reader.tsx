@@ -12,7 +12,10 @@ import TranslatedPane from './TranslatedPane'
 import Dropdown from '../Dropdown'
 import Icon from '../Icon'
 import PhoneticPopup from '../PhoneticPopup'
-import { saveLastPage, setReadingMode, setTranslationLanguage, readingMode, type Book } from '../../lib/books'
+import {
+  readingMode, saveLastPage, setFavorite as setFavorite_, setReadingMode,
+  setTranslationLanguage, type Book,
+} from '../../lib/books'
 import { listBookCards, saveCard, setPinned, type Card } from '../../lib/cards'
 import { LANGUAGES, languageLabel } from '../../lib/languages'
 import { getPageText } from '../../lib/pdfText'
@@ -57,6 +60,7 @@ export default function Reader({ book, url }: Props) {
   const [tooltip, setTooltip] = useState<{ card: Card; x: number; y: number } | null>(null)
   const [panel, setPanel] = useState<'none' | 'settings' | 'book'>('none')
   const [pageText, setPageText] = useState('')
+  const [favorite, setFavorite] = useState(Boolean(book.favorite))
 
   const surfaceRef = useRef<HTMLDivElement>(null)
   const [surfaceWidth, setSurfaceWidth] = useState(1000)
@@ -366,13 +370,23 @@ export default function Reader({ book, url }: Props) {
 
         {panel === 'book' && (
           <BookPanel
-            book={{ ...book, last_page: page, total_pages: numPages || book.total_pages }}
+            book={{
+              ...book,
+              favorite,
+              last_page: page,
+              total_pages: numPages || book.total_pages,
+            }}
             cards={cards}
             onTogglePin={togglePin}
             onPatchCard={(id, patch) =>
               setCards(cs => cs.map(c => (c.id === id ? { ...c, ...patch } : c)))
             }
             onRemoveCard={id => setCards(cs => cs.filter(c => c.id !== id))}
+            onToggleFavorite={async b => {
+              const next = !favorite
+              setFavorite(next)
+              await setFavorite_(b.id, next)
+            }}
             onGoToCard={card => { goToPage(card.page_number); setPanel('none') }}
             onClose={() => setPanel('none')}
           />

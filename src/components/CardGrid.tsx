@@ -17,7 +17,7 @@ export default function CardGrid({
     return <EmptyState tinted className="h-[110px]">{empty}</EmptyState>
   }
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {cards.map(card => (
         <VocabCard
           key={card.id}

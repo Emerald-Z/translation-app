@@ -6,6 +6,8 @@ export interface Collection {
   name: string
   created_at: string
   card_count: number
+  /** Added by migration 0002. Optional so the app runs without it. */
+  cover_path?: string | null
 }
 
 /** Set once a query proves the collections tables are absent. */
@@ -15,7 +17,7 @@ export const collectionsUnavailable = () => unavailable
 export async function listCollections(): Promise<Collection[]> {
   const { data, error } = await supabase
     .from('collections')
-    .select('id, name, created_at, collection_cards(count)')
+    .select('id, name, created_at, cover_path, collection_cards(count)')
     .order('created_at', { ascending: false })
 
   if (error) {
@@ -36,24 +38,46 @@ export async function listCollections(): Promise<Collection[]> {
   }))
 }
 
-export async function createCollection(name: string): Promise<Collection | null> {
+export async function createCollection(
+  name: string,
+  coverPath?: string | null
+): Promise<Collection | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
 
-  const { data, error } = await supabase
-    .from('collections')
-    .insert({ name, user_id: user.id })
-    .select('id, name, created_at')
-    .single()
+  const insert = async (row: Record<string, unknown>, select: string) =>
+    supabase.from('collections').insert(row).select(select).single()
 
-  if (error) {
-    if (isMissingSchema(error)) {
+  const base = { name, user_id: user.id }
+  let res = await insert({ ...base, cover_path: coverPath ?? null }, 'id, name, created_at, cover_path')
+  if (res.error && isMissingSchema(res.error)) {
+    res = await insert(base, 'id, name, created_at')
+  }
+
+  if (res.error) {
+    if (isMissingSchema(res.error)) {
       unavailable = true
       return null
     }
-    throw error
+    throw res.error
   }
-  return { ...(data as Omit<Collection, 'card_count'>), card_count: 0 }
+  return {
+    ...(res.data as unknown as Omit<Collection, 'card_count'>),
+    card_count: 0,
+  }
+}
+
+/** Uploads a collection cover into the shared public bucket. */
+export async function uploadCollectionCover(file: File): Promise<string | null> {
+  const path = `collections/${crypto.randomUUID()}-${file.name.replace(/[^\w.-]/g, '')}`
+  const { error } = await supabase.storage.from('covers').upload(path, file)
+  if (error) return null
+  return path
+}
+
+export function collectionCoverUrl(path?: string | null): string | null {
+  if (!path) return null
+  return supabase.storage.from('covers').getPublicUrl(path).data.publicUrl
 }
 
 export async function renameCollection(id: string, name: string) {

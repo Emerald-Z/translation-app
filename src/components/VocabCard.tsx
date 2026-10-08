@@ -10,12 +10,15 @@ interface Props {
   /** Called after an edit is saved, so the owning list can update in place. */
   onChanged?: (patch: { translation_override: string | null; notes: string | null }) => void
   onDeleted?: () => void
+  /** Selection mode: renders the tinted, ringed state and makes the card a toggle. */
+  selected?: boolean
+  onSelect?: (card: Card) => void
   compact?: boolean
 }
 
 /** The saved word or phrase, used on Home, in the Cards section and in the reader. */
 export default function VocabCard({
-  card, onTogglePin, onOpen, onChanged, onDeleted, compact = false,
+  card, onTogglePin, onOpen, onChanged, onDeleted, selected, onSelect, compact = false,
 }: Props) {
   const translation = card.translation_override ?? card.translation
   const [menu, setMenu] = useState(false)
@@ -41,25 +44,32 @@ export default function VocabCard({
   return (
     <>
       <article
-        onClick={onOpen ? () => onOpen(card) : undefined}
-        className={`flex flex-col rounded-md border border-line bg-white shadow-card transition
-          ${onOpen ? 'cursor-pointer hover:border-peri-soft' : ''} ${compact ? 'p-3' : 'p-3.5'}`}
+        onClick={
+          onSelect ? () => onSelect(card) : onOpen ? () => onOpen(card) : undefined
+        }
+        aria-pressed={onSelect ? selected : undefined}
+        className={`flex flex-col rounded-md border shadow-card transition
+          ${selected ? 'border-ink bg-[#E9EBF3]' : 'border-rule bg-white'}
+          ${onSelect || onOpen ? 'cursor-pointer' : ''}
+          ${onSelect && !selected ? 'hover:border-peri-soft' : ''}
+          ${onOpen && !onSelect ? 'hover:border-peri-soft' : ''}
+          ${compact ? 'p-3' : 'p-3.5'}`}
       >
         <p className="text-[15px] leading-snug text-ink">{card.text}</p>
 
         {card.pinyin && (
-          <p className="mt-0.5 text-[11px] italic leading-snug text-ink-soft">{card.pinyin}</p>
+          <p className="mt-0.5 text-[11px] italic leading-snug text-rule">{card.pinyin}</p>
         )}
 
-        <p className="mt-1.5 border-t border-[#C9BE8E]/60 pt-1.5 text-[12px] leading-snug text-ink">
+        <p className="mt-1.5 border-t border-rule pt-1.5 text-[13px] leading-snug text-peri">
           {translation || 'No translation yet'}
         </p>
 
         <div className="mt-3 flex items-end justify-between gap-2">
-          <p className="min-w-0 truncate text-[12px] text-ink">
+          <p className="min-w-0 truncate text-[11px] text-peri">
             {card.book_title}
-            <span className="mx-1 text-ink-soft">•</span>
-            <em className="text-[10px] not-italic text-ink-soft">pg. {card.page_number}</em>
+            <span className="mx-1">•</span>
+            <em className="text-[10px] not-italic">pg. {card.page_number}</em>
           </p>
 
           <div className="flex shrink-0 items-center gap-1.5">

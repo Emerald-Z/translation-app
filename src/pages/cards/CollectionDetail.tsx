@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import CardGrid from '../../components/CardGrid'
 import Icon from '../../components/Icon'
-import Modal from '../../components/Modal'
+import AddFromSavedModal from '../../components/AddFromSavedModal'
 import VocabCard from '../../components/VocabCard'
 import {
   addCardsToCollection, listCollectionCardIds, listCollections,
@@ -17,7 +17,6 @@ export default function CollectionDetail() {
   const [collection, setCollection] = useState<Collection | null>(null)
   const [memberIds, setMemberIds] = useState<string[]>([])
   const [adding, setAdding] = useState(false)
-  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!collectionId) return
@@ -36,12 +35,10 @@ export default function CollectionDetail() {
     [cards, memberIds]
   )
 
-  async function handleAdd() {
+  async function handleAdd(ids: string[]) {
     if (!collectionId) return
-    const ids = [...selected]
     await addCardsToCollection(collectionId, ids)
     setMemberIds(prev => [...prev, ...ids])
-    setSelected(new Set())
     setAdding(false)
   }
 
@@ -104,54 +101,12 @@ export default function CollectionDetail() {
       </div>
 
       {adding && (
-        <Modal title="Add from Saved" width={640} onClose={() => setAdding(false)}>
-          <div className="scroll-slim max-h-[420px] space-y-2 overflow-y-auto pr-1">
-            {candidates.length ? (
-              candidates.map(card => {
-                const checked = selected.has(card.id)
-                return (
-                  <label
-                    key={card.id}
-                    className="flex cursor-pointer items-start gap-3 rounded-xs bg-white p-3"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() =>
-                        setSelected(prev => {
-                          const next = new Set(prev)
-                          checked ? next.delete(card.id) : next.add(card.id)
-                          return next
-                        })
-                      }
-                      className="mt-1 accent-[#6A7CB9]"
-                    />
-                    <span className="min-w-0">
-                      <span className="block text-[15px] text-ink">{card.text}</span>
-                      <span className="block text-[12px] italic text-ink-soft">
-                        {card.translation_override ?? card.translation}
-                      </span>
-                      <span className="block text-[11px] text-ink-soft">
-                        {card.book_title} • pg. {card.page_number}
-                      </span>
-                    </span>
-                  </label>
-                )
-              })
-            ) : (
-              <p className="py-8 text-center text-sm text-ink-soft">
-                Every saved card is already in this collection.
-              </p>
-            )}
-          </div>
-
-          <div className="mt-6 flex justify-end gap-3">
-            <button onClick={() => setAdding(false)} className="btn-secondary">Cancel</button>
-            <button onClick={handleAdd} disabled={!selected.size} className="btn-primary">
-              Add {selected.size || ''} {selected.size === 1 ? 'card' : 'cards'}
-            </button>
-          </div>
-        </Modal>
+        <AddFromSavedModal
+          cards={candidates}
+          onTogglePin={togglePin}
+          onCancel={() => setAdding(false)}
+          onDone={handleAdd}
+        />
       )}
     </div>
   )

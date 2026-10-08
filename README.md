@@ -133,17 +133,21 @@ create policy "users manage own highlights" on highlights
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 ```
 
-### Redesign migration
+### Migrations
 
-Run `supabase/migrations/0001_lingomous_redesign.sql` against your project. It
-adds book titles, authors, translation language, reading mode and favourites;
-pinned cards; the `profiles` table; the `collections` and `collection_cards`
-tables; and a public `covers` storage bucket.
+Run these against your project, in order:
 
-The app degrades rather than breaking if the migration has not run: book titles
-fall back to file names, the profile falls back to the email handle stored
-locally, and pinning and collections quietly no-op. Run the migration to get
-those features.
+- `supabase/migrations/0001_lingomous_redesign.sql` adds book titles, authors,
+  translation language, reading mode and favourites; pinned cards; the
+  `profiles` table; the `collections` and `collection_cards` tables; and a
+  public `covers` storage bucket with its policies.
+- `supabase/migrations/0002_collection_covers.sql` adds the cover image that
+  collections gained in the October designs.
+
+The app degrades rather than breaking if these have not run: book titles fall
+back to file names, the profile falls back to the email handle stored locally,
+collection covers fall back to a gradient, and pinning and collections quietly
+no-op.
 
 ### Storage
 

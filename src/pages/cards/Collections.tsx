@@ -1,19 +1,30 @@
 import { useEffect, useState } from 'react'
+import AddFromSavedModal from '../../components/AddFromSavedModal'
+import CollectionCreated from '../../components/CollectionCreated'
 import CollectionTile from '../../components/CollectionTile'
+import CreateCollectionModal from '../../components/CreateCollectionModal'
 import EmptyState from '../../components/EmptyState'
 import Icon from '../../components/Icon'
-import Modal from '../../components/Modal'
 import {
-  createCollection, deleteCollection, listCollections, renameCollection,
-  collectionsUnavailable, type Collection,
+  addCardsToCollection, collectionsUnavailable, createCollection, deleteCollection,
+  listCollections, renameCollection, uploadCollectionCover, type Collection,
 } from '../../lib/collections'
+import { useCards } from './cardsContext'
+
+/** The create flow runs name and cover, then card picking, then confirmation. */
+type Stage =
+  | { step: 'idle' }
+  | { step: 'naming' }
+  | { step: 'picking'; collection: Collection }
+  | { step: 'created'; collection: Collection }
+  | { step: 'renaming'; collection: Collection }
 
 export default function Collections() {
+  const { cards, togglePin } = useCards()
   const [collections, setCollections] = useState<Collection[]>([])
   const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [renaming, setRenaming] = useState<Collection | null>(null)
-  const [name, setName] = useState('')
+  const [stage, setStage] = useState<Stage>({ step: 'idle' })
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     listCollections()
@@ -22,23 +33,30 @@ export default function Collections() {
       .finally(() => setLoading(false))
   }, [])
 
-  async function handleCreate() {
-    const trimmed = name.trim()
-    if (!trimmed) return
-    const created = await createCollection(trimmed)
-    if (created) setCollections(cs => [created, ...cs])
-    setCreating(false)
-    setName('')
+  async function handleCreate(name: string, cover: File | null) {
+    setError(null)
+    const coverPath = cover ? await uploadCollectionCover(cover) : null
+    const created = await createCollection(name, coverPath)
+    if (!created) {
+      setError('Collections need the tables from migration 0001. Run it to start grouping cards.')
+      setStage({ step: 'idle' })
+      return
+    }
+    setCollections(cs => [created, ...cs])
+    setStage({ step: 'picking', collection: created })
   }
 
-  async function handleRename() {
-    if (!renaming) return
-    const trimmed = name.trim()
-    if (!trimmed) return
-    await renameCollection(renaming.id, trimmed)
-    setCollections(cs => cs.map(c => (c.id === renaming.id ? { ...c, name: trimmed } : c)))
-    setRenaming(null)
-    setName('')
+  async function handlePicked(collection: Collection, cardIds: string[]) {
+    await addCardsToCollection(collection.id, cardIds)
+    const withCount = { ...collection, card_count: cardIds.length }
+    setCollections(cs => cs.map(c => (c.id === collection.id ? withCount : c)))
+    setStage({ step: 'created', collection: withCount })
+  }
+
+  async function handleRename(collection: Collection, name: string) {
+    await renameCollection(collection.id, name)
+    setCollections(cs => cs.map(c => (c.id === collection.id ? { ...c, name } : c)))
+    setStage({ step: 'idle' })
   }
 
   async function handleDelete(collection: Collection) {
@@ -52,7 +70,7 @@ export default function Collections() {
       <div className="flex items-center justify-between">
         <h2 className="text-[19px] text-ink">My Card Collections</h2>
         <button
-          onClick={() => { setName(''); setCreating(true) }}
+          onClick={() => setStage({ step: 'naming' })}
           className="btn-secondary flex items-center gap-1.5"
         >
           <Icon name="plus" size={14} strokeWidth={2} />
@@ -60,10 +78,10 @@ export default function Collections() {
         </button>
       </div>
 
-      {collectionsUnavailable() && (
+      {(error || collectionsUnavailable()) && (
         <p className="mt-4 rounded-xs bg-sand px-3 py-2 text-[13px] text-ink">
-          Collections need the tables from migration 0001. Run it against your Supabase project
-          to start grouping cards.
+          {error ??
+            'Collections need the tables from migration 0001. Run it against your Supabase project to start grouping cards.'}
         </p>
       )}
 
@@ -73,44 +91,48 @@ export default function Collections() {
             <CollectionTile
               key={collection.id}
               collection={collection}
-              onRename={c => { setName(c.name); setRenaming(c) }}
+              onRename={c => setStage({ step: 'renaming', collection: c })}
               onDelete={handleDelete}
             />
           ))
         ) : (
-          <EmptyState tinted className="col-span-full h-[130px]">
+          <EmptyState tinted className="col-span-full h-[150px]">
             {loading ? 'Loading…' : 'Your card collections will appear here'}
           </EmptyState>
         )}
       </div>
 
-      {(creating || renaming) && (
-        <Modal
-          title={renaming ? 'Edit Collection' : 'Create Collection'}
-          width={560}
-          onClose={() => { setCreating(false); setRenaming(null) }}
-        >
-          <label className="mb-1 block text-sm text-ink" htmlFor="collection-name">
-            Collection Name
-          </label>
-          <input
-            id="collection-name" className="field" value={name} autoFocus
-            placeholder="Travel words"
-            onChange={e => setName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') renaming ? handleRename() : handleCreate() }}
-          />
-          <div className="mt-6 flex justify-end gap-3">
-            <button
-              onClick={() => { setCreating(false); setRenaming(null) }}
-              className="btn-secondary"
-            >
-              Cancel
-            </button>
-            <button onClick={renaming ? handleRename : handleCreate} className="btn-primary">
-              {renaming ? 'Save' : 'Create'}
-            </button>
-          </div>
-        </Modal>
+      {stage.step === 'naming' && (
+        <CreateCollectionModal
+          onCancel={() => setStage({ step: 'idle' })}
+          onConfirm={handleCreate}
+        />
+      )}
+
+      {stage.step === 'renaming' && (
+        <CreateCollectionModal
+          heading="Edit Collection"
+          confirmLabel="Save"
+          initialName={stage.collection.name}
+          onCancel={() => setStage({ step: 'idle' })}
+          onConfirm={name => handleRename(stage.collection, name)}
+        />
+      )}
+
+      {stage.step === 'picking' && (
+        <AddFromSavedModal
+          cards={cards}
+          onTogglePin={togglePin}
+          onCancel={() => setStage({ step: 'created', collection: stage.collection })}
+          onDone={ids => handlePicked(stage.collection, ids)}
+        />
+      )}
+
+      {stage.step === 'created' && (
+        <CollectionCreated
+          collection={stage.collection}
+          onClose={() => setStage({ step: 'idle' })}
+        />
       )}
     </div>
   )

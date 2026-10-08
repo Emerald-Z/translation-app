@@ -17,6 +17,7 @@ export default {
         wood: '#806349',         // bookshelf
         canvas: '#DDDCD0',       // reader backdrop
         toolbar: '#C6C1A5',      // reader floating toolbar
+        rule: '#C6C1A5',         // card hairlines and romanization text
         olive: '#625615',        // gold/olive accent text
         rose: '#D1ACAC',         // stat tile pink
         heart: '#CC2B2B',        // favourite heart

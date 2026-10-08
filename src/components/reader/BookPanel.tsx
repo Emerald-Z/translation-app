@@ -11,34 +11,48 @@ interface Props {
   onTogglePin: (card: Card) => void
   onPatchCard: (id: string, patch: Partial<Card>) => void
   onRemoveCard: (id: string) => void
+  onToggleFavorite: (book: Book) => void
   onGoToCard: (card: Card) => void
   onClose: () => void
 }
 
 /** Right-hand drawer: book details plus every card saved from this book. */
 export default function BookPanel({
-  book, cards, onTogglePin, onPatchCard, onRemoveCard, onGoToCard, onClose,
+  book, cards, onTogglePin, onPatchCard, onRemoveCard, onToggleFavorite, onGoToCard, onClose,
 }: Props) {
   const progress = bookProgress(book)
 
   return (
-    <aside className="absolute right-0 top-0 z-30 flex h-full w-[380px] flex-col bg-cream shadow-panel">
+    <aside className="absolute right-0 top-0 z-30 flex h-full w-[396px] flex-col bg-white shadow-panel">
       <div className="relative flex gap-4 bg-sand p-4">
-        <div className="h-[150px] w-[110px] shrink-0 overflow-hidden shadow-card">
+        <div className="relative h-[200px] w-[147px] shrink-0 overflow-hidden shadow-card">
           <BookCover book={book} />
+          <button
+            onClick={() => onToggleFavorite(book)}
+            aria-label={book.favorite ? 'Remove from favourites' : 'Add to favourites'}
+            className="absolute right-1.5 top-1.5"
+          >
+            <Icon
+              name="heart"
+              size={20}
+              filled={Boolean(book.favorite)}
+              className={book.favorite ? 'text-heart' : 'text-white drop-shadow'}
+            />
+          </button>
         </div>
+
         <div className="min-w-0 flex-1 pr-6">
           <p className="font-display text-[17px] font-bold leading-tight text-ink">
             {bookTitle(book)}
           </p>
-          {book.author && <p className="mt-0.5 text-[12px] text-ink-soft">{book.author}</p>}
-          <span className="mt-2 inline-block rounded-xs bg-white px-2 py-1 text-[11px] text-ink">
+          {book.author && <p className="mt-0.5 text-[13px] text-ink">{book.author}</p>}
+          <span className="mt-2 inline-block rounded-xs bg-white px-3 py-1 text-[12px] text-ink">
             {languageLabel(book.language)}
           </span>
-          <div className="mt-4 h-3.5 w-full overflow-hidden rounded-full bg-white">
+          <div className="mt-5 h-3.5 w-full overflow-hidden rounded-full bg-white">
             <div className="h-full rounded-full bg-peri" style={{ width: `${progress}%` }} />
           </div>
-          <p className="mt-1 text-[12px] text-ink">{progress}% Complete</p>
+          <p className="mt-1 text-[13px] text-ink">{progress}% Complete</p>
         </div>
 
         <button
@@ -50,12 +64,12 @@ export default function BookPanel({
         </button>
       </div>
 
-      <div className="flex items-center justify-between px-4 pb-2 pt-4">
+      <div className="flex items-center justify-between px-5 pb-2 pt-5">
         <h3 className="text-[17px] text-ink">Saved Cards</h3>
         <span className="text-[13px] text-ink">{cards.length} Cards</span>
       </div>
 
-      <div className="scroll-slim flex-1 space-y-3 overflow-y-auto px-4 pb-6">
+      <div className="scroll-slim flex-1 space-y-3 overflow-y-auto px-5 pb-6">
         {cards.length ? (
           cards.map(card => (
             <VocabCard
@@ -68,9 +82,7 @@ export default function BookPanel({
             />
           ))
         ) : (
-          <p className="pt-10 text-center text-sm text-ink-soft">
-            Select text while reading to save your first card.
-          </p>
+          <p className="pt-[220px] text-center text-[15px] text-peri">No cards saved yet</p>
         )}
       </div>
     </aside>
