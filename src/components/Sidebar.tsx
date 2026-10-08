@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import Icon, { type IconName } from './Icon'
 import mascot from '../assets/art/mascot-badge.png'
 
@@ -13,13 +13,17 @@ const NAV: { to: string; label: string; icon: IconName; end?: boolean }[] = [
 export default function Sidebar() {
   return (
     <aside className="flex w-[200px] shrink-0 flex-col bg-ink text-cream">
-      <div className="flex flex-col items-center pt-7">
+      <Link
+        to="/"
+        aria-label="LingoMous home"
+        className="flex flex-col items-center pt-7 transition hover:opacity-90"
+      >
         <img src={mascot} alt="" className="h-20 w-20 rounded-full object-cover" />
         <p className="mt-3 font-display text-[19px] leading-none">
           <span className="text-peri-soft">Lingo</span>
           <span className="font-bold text-cream">Mous</span>
         </p>
-      </div>
+      </Link>
 
       {/* First row starts at y=304; rows are 64 tall. */}
       <nav className="mt-[165px] flex flex-col">
