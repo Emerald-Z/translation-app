@@ -7,6 +7,8 @@ export interface CardsContext {
   books: Book[]
   loading: boolean
   togglePin: (card: Card) => Promise<void>
+  patchCard: (id: string, patch: Partial<Card>) => void
+  removeCard: (id: string) => void
   reload: () => Promise<void>
 }
 

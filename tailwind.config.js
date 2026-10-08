@@ -6,6 +6,7 @@ export default {
       colors: {
         ink: '#2F3F75',          // primary navy — sidebar, headings, body text
         'ink-soft': '#63678E',   // muted navy for secondary copy
+        'ink-hover': '#465791',  // sidebar nav hover, between navy and periwinkle
         peri: '#6A7CB9',         // periwinkle — buttons, active nav, sliders
         'peri-soft': '#CBD1E3',  // pale periwinkle — chips, tracks, secondary buttons
         'peri-faint': '#B6BDD3', // stat tile blue

@@ -96,7 +96,7 @@ export default function Reader({ book, url }: Props) {
 
   const pageWidth = useMemo(() => {
     const available = Math.max(320, surfaceWidth - 96)
-    const base = mode === 'side-by-side' ? (available - 24) / 2 : Math.min(available, 1030)
+    const base = mode === 'side-by-side' ? (available - 24) / 2 : Math.min(available, 1112)
     return base * settings.pageScale
   }, [surfaceWidth, mode, settings.pageScale])
 
@@ -242,7 +242,7 @@ export default function Reader({ book, url }: Props) {
           className="scroll-slim h-full overflow-y-auto pb-24"
           onMouseUp={handleMouseUp}
         >
-          <div className="sticky top-0 z-10 flex items-start justify-between gap-4 bg-canvas px-8 py-4">
+          <div className="sticky top-0 z-10 flex items-start justify-between gap-4 bg-canvas px-8 pt-4 pb-6">
             <div className="flex-1" />
 
             <div className="flex items-center gap-3 rounded-xs bg-white px-3 py-2 shadow-card">
@@ -287,7 +287,7 @@ export default function Reader({ book, url }: Props) {
               </div>
             }
           >
-            {layout === 'continuous' ? (
+            {layout === 'scrolling' ? (
               <div className="flex flex-col items-center gap-6 px-8">
                 {Array.from({ length: numPages }, (_, i) => renderPage(i + 1))}
               </div>
@@ -369,6 +369,10 @@ export default function Reader({ book, url }: Props) {
             book={{ ...book, last_page: page, total_pages: numPages || book.total_pages }}
             cards={cards}
             onTogglePin={togglePin}
+            onPatchCard={(id, patch) =>
+              setCards(cs => cs.map(c => (c.id === id ? { ...c, ...patch } : c)))
+            }
+            onRemoveCard={id => setCards(cs => cs.filter(c => c.id !== id))}
             onGoToCard={card => { goToPage(card.page_number); setPanel('none') }}
             onClose={() => setPanel('none')}
           />

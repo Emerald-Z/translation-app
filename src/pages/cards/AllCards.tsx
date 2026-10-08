@@ -7,7 +7,7 @@ import { languageLabel } from '../../lib/languages'
 import { useCards } from './cardsContext'
 
 export default function AllCards() {
-  const { cards, books, loading, togglePin } = useCards()
+  const { cards, books, loading, togglePin, patchCard, removeCard } = useCards()
   const [language, setLanguage] = useState('')
   const [bookId, setBookId] = useState('')
   const [search, setSearch] = useState('')
@@ -83,6 +83,8 @@ export default function AllCards() {
         <CardGrid
           cards={filtered}
           onTogglePin={togglePin}
+          onPatch={patchCard}
+          onRemove={removeCard}
           empty={loading ? 'Loading…' : 'All cards will appear here'}
         />
       </div>

@@ -1,6 +1,7 @@
 import Icon from '../Icon'
 import {
-  HIGHLIGHT_COLORS, type PageLayout, type PageTheme, type ReaderSettings,
+  HIGHLIGHT_COLORS, THEME_SWATCH,
+  type PageLayout, type PageTheme, type ReaderSettings,
 } from '../../lib/readerSettings'
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
 
 export default function SettingsPanel({ settings, update, onClose }: Props) {
   return (
-    <aside className="scroll-slim absolute right-0 top-0 z-30 h-full w-[340px] overflow-y-auto bg-white px-6 py-6 shadow-panel">
+    <aside className="scroll-slim absolute right-0 top-0 z-30 h-full w-[359px] overflow-y-auto bg-white px-6 py-6 shadow-panel">
       <div className="flex items-center gap-2">
         <Icon name="settings" size={26} filled className="text-ink" />
         <h2 className="font-display text-[22px] font-bold text-ink">Settings</h2>
@@ -29,7 +30,7 @@ export default function SettingsPanel({ settings, update, onClose }: Props) {
           {([0, 1, 2] as const).map(scale => (
             <Segment
               key={scale}
-              active={settings.fontScale === scale}
+              selected={settings.fontScale === scale}
               onClick={() => update('fontScale', scale)}
             >
               <span style={{ fontSize: 11 + scale * 4 }}>Aa</span>
@@ -51,8 +52,15 @@ export default function SettingsPanel({ settings, update, onClose }: Props) {
       <Section label="Theme">
         <div className="grid grid-cols-3 gap-2">
           {(['light', 'sepia', 'dark'] as PageTheme[]).map(theme => (
-            <Segment key={theme} active={settings.theme === theme}
-              onClick={() => update('theme', theme)}>
+            <Segment
+              key={theme}
+              selected={settings.theme === theme}
+              onClick={() => update('theme', theme)}
+              style={{
+                background: THEME_SWATCH[theme].bg,
+                color: THEME_SWATCH[theme].text,
+              }}
+            >
               <span className="capitalize">{theme}</span>
             </Segment>
           ))}
@@ -61,10 +69,13 @@ export default function SettingsPanel({ settings, update, onClose }: Props) {
 
       <Section label="Layout">
         <div className="grid grid-cols-2 gap-2">
-          {(['single', 'continuous'] as PageLayout[]).map(layout => (
-            <Segment key={layout} active={settings.layout === layout}
-              onClick={() => update('layout', layout)}>
-              <span className="capitalize">{layout === 'single' ? 'Single Page' : 'Continuous'}</span>
+          {(['scrolling', 'single'] as PageLayout[]).map(layout => (
+            <Segment
+              key={layout}
+              selected={settings.layout === layout}
+              onClick={() => update('layout', layout)}
+            >
+              {layout === 'scrolling' ? 'Scrolling Page' : 'Single Page'}
             </Segment>
           ))}
         </div>
@@ -73,14 +84,11 @@ export default function SettingsPanel({ settings, update, onClose }: Props) {
       <Section label="Highlight Color">
         <div className="grid grid-cols-5 gap-2">
           {HIGHLIGHT_COLORS.map(color => (
-            <button
+            <Swatch
               key={color}
+              color={color}
+              selected={settings.highlightColor === color}
               onClick={() => update('highlightColor', color)}
-              aria-label={`Highlight colour ${color}`}
-              className={`h-[42px] rounded-xs transition ${
-                settings.highlightColor === color ? 'ring-2 ring-ink' : 'hover:opacity-80'
-              }`}
-              style={{ background: color }}
             />
           ))}
         </div>
@@ -103,17 +111,52 @@ function Section({ label, children }: { label: string; children: React.ReactNode
   )
 }
 
+/** A navy ring plus a check badge marks the active choice, per the design. */
 function Segment({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  selected, onClick, children, style,
+}: {
+  selected: boolean
+  onClick: () => void
+  children: React.ReactNode
+  style?: React.CSSProperties
+}) {
   return (
     <button
       onClick={onClick}
-      className={`flex h-[46px] items-center justify-center rounded-xs text-[13px] transition
-        ${active ? 'bg-peri text-white' : 'bg-sand text-ink hover:bg-sand/70'}`}
+      aria-pressed={selected}
+      style={style}
+      className={`relative flex h-[46px] items-center justify-center rounded-xs bg-sand text-[13px] text-ink transition
+        ${selected ? 'ring-2 ring-ink' : 'hover:opacity-80'}`}
     >
       {children}
+      {selected && <CheckBadge />}
     </button>
+  )
+}
+
+function Swatch({
+  color, selected, onClick,
+}: { color: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={selected}
+      aria-label={`Highlight colour ${color}`}
+      style={{ background: color }}
+      className={`relative h-[42px] rounded-xs transition ${
+        selected ? 'ring-2 ring-ink' : 'hover:opacity-80'
+      }`}
+    >
+      {selected && <CheckBadge />}
+    </button>
+  )
+}
+
+function CheckBadge() {
+  return (
+    <span className="absolute -right-2 -top-2 flex h-[19px] w-[19px] items-center justify-center rounded-full bg-ink text-white">
+      <Icon name="check" size={11} strokeWidth={2.6} />
+    </span>
   )
 }
 

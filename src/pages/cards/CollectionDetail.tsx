@@ -12,7 +12,7 @@ import { useCards } from './cardsContext'
 
 export default function CollectionDetail() {
   const { collectionId } = useParams<{ collectionId: string }>()
-  const { cards, loading, togglePin } = useCards()
+  const { cards, loading, togglePin, patchCard, removeCard } = useCards()
 
   const [collection, setCollection] = useState<Collection | null>(null)
   const [memberIds, setMemberIds] = useState<string[]>([])
@@ -78,7 +78,12 @@ export default function CollectionDetail() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {members.map(card => (
               <div key={card.id} className="relative">
-                <VocabCard card={card} onTogglePin={togglePin} />
+                <VocabCard
+                  card={card}
+                  onTogglePin={togglePin}
+                  onChanged={patch => patchCard(card.id, patch)}
+                  onDeleted={() => removeCard(card.id)}
+                />
                 <button
                   onClick={() => handleRemove(card.id)}
                   aria-label="Remove from collection"

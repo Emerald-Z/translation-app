@@ -16,7 +16,7 @@ export default function ReaderToolbar({
 }: Props) {
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center">
-      <div className="pointer-events-auto flex h-[54px] w-[640px] max-w-[92%] items-center gap-4 rounded-t-xs bg-toolbar px-6 shadow-panel">
+      <div className="pointer-events-auto flex h-[54px] w-[683px] max-w-[92%] items-center gap-4 rounded-t-xs bg-toolbar px-6 shadow-panel">
         <button
           onClick={onTogglePhonetics}
           aria-label="Toggle pronunciation guides"

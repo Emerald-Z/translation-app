@@ -11,7 +11,7 @@ interface Props {
 
 export default function ReaderTopBar({ book, panelOpen, onTogglePanel }: Props) {
   return (
-    <header className="relative flex h-[74px] shrink-0 items-center bg-cream px-6">
+    <header className="relative flex h-20 shrink-0 items-center bg-cream px-6">
       <Link
         to="/library"
         aria-label="Back to library"

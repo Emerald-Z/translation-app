@@ -78,14 +78,14 @@ export default function Home() {
           {current ? (
             <ContinueCard book={current} />
           ) : (
-            <EmptyState className="h-[224px] w-[344px] bg-sand">
+            <EmptyState className="h-[224px] w-[344px] rounded-lg bg-sand">
               {loading ? 'Loading…' : 'Add a book to start reading'}
             </EmptyState>
           )}
           <Link
             to="/add"
             aria-label="Add a book"
-            className="flex h-[224px] w-[169px] items-center justify-center bg-sand text-cream transition hover:bg-sand/80"
+            className="flex h-[224px] w-[169px] items-center justify-center rounded-lg bg-sand text-cream transition hover:bg-sand/80"
           >
             <Icon name="plus" size={54} strokeWidth={2} />
           </Link>
@@ -115,7 +115,16 @@ export default function Home() {
           {pinned.length ? (
             <div className="scroll-slim mt-3 flex-1 space-y-3 overflow-y-auto pr-1">
               {pinned.map(card => (
-                <VocabCard key={card.id} card={card} onTogglePin={togglePin} compact />
+                <VocabCard
+                  key={card.id}
+                  card={card}
+                  onTogglePin={togglePin}
+                  onChanged={patch =>
+                    setCards(cs => cs.map(c => (c.id === card.id ? { ...c, ...patch } : c)))
+                  }
+                  onDeleted={() => setCards(cs => cs.filter(c => c.id !== card.id))}
+                  compact
+                />
               ))}
             </div>
           ) : (
@@ -136,7 +145,7 @@ export default function Home() {
 function ContinueCard({ book }: { book: Book }) {
   const progress = bookProgress(book)
   return (
-    <Link to={`/read/${book.id}`} className="flex w-[344px] gap-4 bg-sand p-3 transition hover:bg-sand/85">
+    <Link to={`/read/${book.id}`} className="flex w-[344px] gap-4 rounded-lg bg-sand p-3 transition hover:bg-sand/85">
       <div className="h-[186px] w-[136px] shrink-0 overflow-hidden shadow-card">
         <BookCover book={book} />
       </div>

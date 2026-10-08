@@ -10,7 +10,7 @@ import { listCollections, type Collection } from '../../lib/collections'
 import { useCards } from './cardsContext'
 
 export default function Directory() {
-  const { cards, books, loading, togglePin } = useCards()
+  const { cards, books, loading, togglePin, patchCard, removeCard } = useCards()
   const [collections, setCollections] = useState<Collection[]>([])
 
   useEffect(() => { listCollections().then(setCollections).catch(() => {}) }, [])
@@ -31,7 +31,12 @@ export default function Directory() {
         <div className="mt-2 flex gap-4 overflow-x-auto pb-2">
           {pinned.map(card => (
             <div key={card.id} className="w-[262px] shrink-0">
-              <VocabCard card={card} onTogglePin={togglePin} />
+              <VocabCard
+                card={card}
+                onTogglePin={togglePin}
+                onChanged={patch => patchCard(card.id, patch)}
+                onDeleted={() => removeCard(card.id)}
+              />
             </div>
           ))}
         </div>

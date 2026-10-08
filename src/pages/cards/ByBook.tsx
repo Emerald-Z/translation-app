@@ -9,7 +9,7 @@ import { useCards } from './cardsContext'
 
 export default function ByBook() {
   const { bookId } = useParams<{ bookId?: string }>()
-  const { cards, books, loading, togglePin } = useCards()
+  const { cards, books, loading, togglePin, patchCard, removeCard } = useCards()
   const groups = useMemo(() => groupByBook(cards), [cards])
   const bookById = useMemo(() => new Map(books.map(b => [b.id, b])), [books])
 
@@ -25,6 +25,8 @@ export default function ByBook() {
         <CardGrid
           cards={group?.items ?? []}
           onTogglePin={togglePin}
+          onPatch={patchCard}
+          onRemove={removeCard}
           empty={loading ? 'Loading…' : 'No cards saved from this book yet'}
         />
       </div>

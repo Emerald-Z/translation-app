@@ -15,7 +15,7 @@ const TONE = {
 export default function StatTile({ label, value, unit, art, tone }: Props) {
   const t = TONE[tone]
   return (
-    <div className={`relative flex h-[68px] w-[220px] items-center overflow-hidden rounded-xs ${t.bg} pl-3 shadow-card`}>
+    <div className={`relative flex h-[68px] w-[220px] items-center overflow-hidden rounded-md ${t.bg} pl-3 shadow-card`}>
       <div className="relative z-10">
         <p className={`text-[11px] leading-none ${t.label}`}>{label}</p>
         <p className="mt-1.5 flex items-baseline gap-1.5">

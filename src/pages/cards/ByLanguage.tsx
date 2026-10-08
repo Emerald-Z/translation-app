@@ -9,7 +9,7 @@ import { useCards } from './cardsContext'
 
 export default function ByLanguage() {
   const { code } = useParams<{ code?: string }>()
-  const { cards, loading, togglePin } = useCards()
+  const { cards, loading, togglePin, patchCard, removeCard } = useCards()
   const groups = useMemo(() => groupByLanguage(cards), [cards])
 
   if (code) {
@@ -21,6 +21,8 @@ export default function ByLanguage() {
         <CardGrid
           cards={group?.items ?? []}
           onTogglePin={togglePin}
+          onPatch={patchCard}
+          onRemove={removeCard}
           empty={loading ? 'Loading…' : 'No cards saved in this language yet'}
         />
       </div>

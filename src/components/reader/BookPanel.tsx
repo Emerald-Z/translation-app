@@ -9,12 +9,16 @@ interface Props {
   book: Book
   cards: Card[]
   onTogglePin: (card: Card) => void
+  onPatchCard: (id: string, patch: Partial<Card>) => void
+  onRemoveCard: (id: string) => void
   onGoToCard: (card: Card) => void
   onClose: () => void
 }
 
 /** Right-hand drawer: book details plus every card saved from this book. */
-export default function BookPanel({ book, cards, onTogglePin, onGoToCard, onClose }: Props) {
+export default function BookPanel({
+  book, cards, onTogglePin, onPatchCard, onRemoveCard, onGoToCard, onClose,
+}: Props) {
   const progress = bookProgress(book)
 
   return (
@@ -54,7 +58,14 @@ export default function BookPanel({ book, cards, onTogglePin, onGoToCard, onClos
       <div className="scroll-slim flex-1 space-y-3 overflow-y-auto px-4 pb-6">
         {cards.length ? (
           cards.map(card => (
-            <VocabCard key={card.id} card={card} onTogglePin={onTogglePin} onOpen={onGoToCard} />
+            <VocabCard
+              key={card.id}
+              card={card}
+              onTogglePin={onTogglePin}
+              onOpen={onGoToCard}
+              onChanged={patch => onPatchCard(card.id, patch)}
+              onDeleted={() => onRemoveCard(card.id)}
+            />
           ))
         ) : (
           <p className="pt-10 text-center text-sm text-ink-soft">

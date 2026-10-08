@@ -35,7 +35,17 @@ export default function CardsLayout() {
     await setPinned(card.id, next)
   }, [])
 
-  const context: CardsContext = { cards, books, loading, togglePin, reload }
+  const patchCard = useCallback((id: string, patch: Partial<Card>) => {
+    setCards(cs => cs.map(c => (c.id === id ? { ...c, ...patch } : c)))
+  }, [])
+
+  const removeCard = useCallback((id: string) => {
+    setCards(cs => cs.filter(c => c.id !== id))
+  }, [])
+
+  const context: CardsContext = {
+    cards, books, loading, togglePin, patchCard, removeCard, reload,
+  }
 
   return (
     <div className="max-w-[1180px]">

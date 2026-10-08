@@ -18,7 +18,7 @@ export default function BookTile({ book, onToggleFavorite, width = 136 }: Props)
     <div style={{ width }} className="shrink-0">
       <Link
         to={`/read/${book.id}`}
-        className="relative block aspect-[3/4] overflow-hidden shadow-card transition hover:opacity-95"
+        className="relative block aspect-[3/4] overflow-hidden rounded shadow-card transition hover:opacity-95"
       >
         <BookCover book={book} />
 
@@ -37,7 +37,7 @@ export default function BookTile({ book, onToggleFavorite, width = 136 }: Props)
           </button>
         )}
 
-        <span className="absolute bottom-1.5 left-1.5 rounded-xs bg-white px-2 py-0.5 text-[11px] text-ink shadow-card">
+        <span className="absolute bottom-1.5 left-1.5 rounded bg-white px-2 py-0.5 text-[11px] text-ink shadow-card">
           {languageLabel(book.language)}
         </span>
       </Link>
