@@ -13,21 +13,26 @@ interface Props {
 
 export default function ReadingModePicker({ value, onChange }: Props) {
   return (
-    <div className="grid grid-cols-3 gap-4">
-      {MODES.map(mode => (
-        <button
-          key={mode.value}
-          type="button"
-          onClick={() => onChange(mode.value)}
-          className={`rounded-xs bg-peri-soft pt-2 text-center transition
-            ${value === mode.value ? 'ring-2 ring-peri' : 'hover:bg-peri-soft/70'}`}
-        >
-          <span className="text-sm text-ink">{mode.label}</span>
-          <div className="mt-2 px-3 pb-3">
-            <Preview mode={mode.value} />
-          </div>
-        </button>
-      ))}
+    <div className="grid grid-cols-3 gap-[26px]">
+      {MODES.map(mode => {
+        const selected = value === mode.value
+        return (
+          <button
+            key={mode.value}
+            type="button"
+            onClick={() => onChange(mode.value)}
+            aria-pressed={selected}
+            className={`rounded-xs pt-2 text-center transition ${
+              selected ? 'bg-[#B0BADA]' : 'bg-[#E9EBF3] hover:bg-[#DCE0EC]'
+            }`}
+          >
+            <span className="text-[15px] text-ink">{mode.label}</span>
+            <div className="mt-2 px-3 pb-3">
+              <Preview mode={mode.value} />
+            </div>
+          </button>
+        )
+      })}
     </div>
   )
 }

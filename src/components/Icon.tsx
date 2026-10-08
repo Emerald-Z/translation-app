@@ -6,7 +6,7 @@ export type IconName =
   | 'home' | 'library' | 'plus-circle' | 'book-open' | 'cards'
   | 'heart' | 'pin' | 'dots' | 'chevron-down' | 'search' | 'close'
   | 'arrow-left' | 'arrow-right' | 'upload' | 'glasses' | 'settings'
-  | 'notebook' | 'file' | 'check' | 'trash' | 'pencil' | 'plus'
+  | 'notebook' | 'file' | 'check' | 'trash' | 'pencil' | 'plus' | 'speaker'
 
 interface Props {
   name: IconName
@@ -178,5 +178,13 @@ function paths(name: IconName, filled: boolean) {
       )
     case 'plus':
       return <path d="M12 5v14M5 12h14" />
+    case 'speaker':
+      return (
+        <>
+          <path d="M11.4 4.6 6.8 8.4H3.6a.6.6 0 0 0-.6.6v6a.6.6 0 0 0 .6.6h3.2l4.6 3.8a.5.5 0 0 0 .8-.4V5a.5.5 0 0 0-.8-.4z" fill="currentColor" />
+          <path d="M16.2 9a4.2 4.2 0 0 1 0 6" />
+          <path d="M18.8 6.2a7.8 7.8 0 0 1 0 11.6" />
+        </>
+      )
   }
 }

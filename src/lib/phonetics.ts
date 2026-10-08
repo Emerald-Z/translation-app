@@ -1,4 +1,4 @@
-import { pinyin } from 'pinyin-pro'
+import { pinyin, segment } from 'pinyin-pro'
 import { toRomaji, isKana } from 'wanakana'
 
 export interface PhoneticSegment {
@@ -79,4 +79,51 @@ export function hasTargetChars(text: string, language: string): boolean {
     case 'ko': return /[가-힣]/.test(text)
     default:   return text.trim().length > 0
   }
+}
+
+/** One word or character of a selection, for the popup's Learn breakdown. */
+export interface Term {
+  text: string
+  phonetic: string
+}
+
+const CJK = /[\u3400-\u4DBF\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7A3]/
+
+/**
+ * Splits a selection into the units worth looking up individually.
+ *
+ * Chinese uses pinyin-pro's dictionary segmentation, so known words stay whole
+ * and unknown runs fall back to single characters. Other CJK scripts split per
+ * character; everything else splits on whitespace.
+ */
+export function segmentTerms(text: string, language: string): Term[] {
+  const trimmed = text.trim()
+  if (!trimmed) return []
+
+  if (language === 'zh') {
+    return segment(trimmed)
+      .filter(part => part.origin.trim())
+      .map(part => ({ text: part.origin, phonetic: part.result ?? '' }))
+  }
+
+  if (CJK.test(trimmed)) {
+    return Array.from(trimmed)
+      .filter(ch => ch.trim())
+      .map(ch => ({ text: ch, phonetic: getPhonetics(ch, language)?.full ?? '' }))
+  }
+
+  return trimmed
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(word => ({ text: word, phonetic: getPhonetics(word, language)?.full ?? '' }))
+}
+
+/** Reads a selection aloud, when the browser has a voice for the language. */
+export function speak(text: string, language: string): boolean {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return false
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = { zh: 'zh-CN', ja: 'ja-JP', ko: 'ko-KR' }[language] ?? language
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(utterance)
+  return true
 }
